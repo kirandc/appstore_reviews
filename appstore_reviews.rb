@@ -43,8 +43,8 @@ categories = [
 ]
 
 #get itune product category wise
-categories.each do |category|
-  CSV.open("#{category[:name]}.csv", "wb") do |csv|
+CSV.open("iTune_app_list.csv", "wb") do |csv|
+  categories.each do |category|
     puts "Categoty - #{category[:name]}"
     #get product alphabate wise
     c = 0 
@@ -61,7 +61,7 @@ categories.each do |category|
         list.search("//a").each do |a|
           begin
             c += 1
-            csv << [c, a.attributes['href'].match(/id([0-9]+)/)[1], a.inner_html]
+            csv << [a.attributes['href'].match(/id([0-9]+)/)[1], a.inner_html, category[:name]]
           rescue => err
             p err
           end
@@ -75,7 +75,6 @@ categories.each do |category|
     end #end alphabate
   end # end csv
 end # end category
-
 
 ########## Second Script : Get reviews #############
 
@@ -236,27 +235,25 @@ end
 
 # a simple command-line presentation
 CSV.open("itune_app_reviews.csv", "wb") do |csv|
-  csv << ['App ID', 'App Name', 'Rating','Subject', 'Aauthor', 'Version','Date','Body']
+  csv << ['App ID', 'App Name', 'Category', 'Rating','Subject', 'Aauthor', 'Version','Date','Body']
   begin
     # Read csv file and get App ID and App Name
-    categories.each do |category|
-      CSV.foreach("#{category[:name]}.csv") do |row|
-        puts "== App: #{row[2]}"
+    CSV.foreach("iTune_app_list.csv") do |row|
+      puts "== App: #{row[1]}"
 
-        csv << ['','',"--------- App: #{row[2]} ------------------",'','','']
-        stores.sort_by { |a| a[:name] }.each do |store|
-          reviews = fetch_reviews(row[1], store)
+      csv << ['','',"--------- App: #{row[1]} ------------------",'','','']
+      stores.sort_by { |a| a[:name] }.each do |store|
+        reviews = fetch_reviews(row[0], store)
 
-          if reviews.any?
-            csv << ['',"--------- Store: #{store[:name]} ------------------",'','','','']
-            reviews.each_with_index do |review, index|
-              csv << [row[1],row[2].to_s.force_encoding("UTF-8"),"#{review[:rating]} #{review[:rating] > 1 ? 'stars' : 'star'}", 
-                      review[:subject], review[:author], review[:version], review[:date], review[:body]]
-            end
+        if reviews.any?
+          csv << ['',"--------- Store: #{store[:name]} ------------------",'','','','']
+          reviews.each_with_index do |review, index|
+            csv << [row[0],row[1].to_s.force_encoding("UTF-8"), row[2], "#{review[:rating]} #{review[:rating] > 1 ? 'stars' : 'star'}", 
+              review[:subject], review[:author], review[:version], review[:date], review[:body]]
           end
         end
-        csv << ['']
       end
+      csv << ['']
     end
   rescue => err
     puts err
