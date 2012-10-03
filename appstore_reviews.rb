@@ -53,7 +53,16 @@ CSV.open("iTune_app_list.csv", "wb") do |csv|
       page = 0
       while true
         puts "Page - #{page}"
-        response = HTTParty.get("http://itunes.apple.com/us/genre/#{category[:ios]}/#{category[:id]}?mt=8&letter=#{alpha}&page=#{page}")
+        #response = HTTParty.get("http://itunes.apple.com/us/genre/#{category[:ios]}/#{category[:id]}?mt=8&letter=#{alpha}&page=#{page}")
+        cmd = sprintf(%{curl -s --socks4a localhost:9050 } <<
+                      %{'http://itunes.apple.com/us/genre/%s/%s?} <<
+                      %{mt=8&letter=%s&page=%d' | xmllint --format --recover - 2>/dev/null},
+                        category[:ios],
+                        category[:id],
+                        alpha,
+                        page)
+
+        response = `#{cmd}`
 
         doc = Hpricot.parse(response)
         list = doc.search("//div[@class='grid3-column']")
@@ -75,7 +84,6 @@ CSV.open("iTune_app_list.csv", "wb") do |csv|
     end #end alphabate
   end # end csv
 end # end category
-
 ########## Second Script : Get reviews #############
 
 # MODIFY YOUR NATIVE LANGUAGE
@@ -187,8 +195,7 @@ end
 def fetch_reviews(software_id, store)
   reviews = []
   
-  # TODO: parameterize type=Purple+Software
-  cmd = sprintf(%{curl -s -A "iTunes/9.2 (Macintosh; U; Mac OS X 10.6" -H "X-Apple-Store-Front: %s-1" } <<
+  cmd = sprintf(%{curl -s --socks4a localhost:9050 -A "iTunes/9.2 (Macintosh; U; Mac OS X 10.6" -H "X-Apple-Store-Front: %s-1" } <<
                 %{'http://ax.phobos.apple.com.edgesuite.net/WebObjects/MZStore.woa/wa/viewContentsUserReviews?id=%s&} <<
                 %{pageNumber=0&sortOrdering=1&type=Purple+Software' | xmllint --format --recover - 2>/dev/null},
                 store[:id],
